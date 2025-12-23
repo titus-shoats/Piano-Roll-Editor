@@ -6,6 +6,7 @@
 #include "VSTGUINoteGridView.hpp"
 
 #define RETURN_IF_EDITING_DISABLED if(styleSheet.disableEditing) { return kMouseEventNotHandled; }
+#define RETURN_VOID_IF_EDITING_DISABLED if(styleSheet.disableEditing) { return; }
 
 NoteGridView::NoteGridView(const CRect& size, NoteGridStyleSheet& ss) 
     : CViewContainer(size), styleSheet(ss)
@@ -123,7 +124,7 @@ void NoteGridView::setQuantisation(const int val)
 
 void NoteGridView::noteCompSelected(NoteView* nc, const CPoint& where, const CButtonState& buttons)
 {
-    RETURN_IF_EDITING_DISABLED
+    RETURN_VOID_IF_EDITING_DISABLED
     
     int dragMove = 0;
     for (auto component : noteComps) {
@@ -154,7 +155,7 @@ void NoteGridView::noteCompSelected(NoteView* nc, const CPoint& where, const CBu
 
 void NoteGridView::noteCompPositionMoved(NoteView* comp, bool callResize)
 {
-    RETURN_IF_EDITING_DISABLED
+    RETURN_VOID_IF_EDITING_DISABLED
     
     if (!firstDrag) {
         firstDrag = true;
@@ -200,7 +201,7 @@ void NoteGridView::noteCompPositionMoved(NoteView* comp, bool callResize)
 
 void NoteGridView::noteCompLengthChanged(NoteView* original, int diff)
 {
-    RETURN_IF_EDITING_DISABLED
+    RETURN_VOID_IF_EDITING_DISABLED
     
     for (auto n : noteComps) {
         if (n->getState() == NoteView::eSelected || n == original) {
@@ -222,7 +223,7 @@ void NoteGridView::noteCompLengthChanged(NoteView* original, int diff)
 
 void NoteGridView::noteCompDragging(NoteView* original, const CPoint& where, const CButtonState& buttons)
 {
-    RETURN_IF_EDITING_DISABLED
+    RETURN_VOID_IF_EDITING_DISABLED
     
     // This is simplified - in full implementation would track drag distances
     for (auto n : noteComps) {
