@@ -13,20 +13,27 @@ PianoRollEditorView::PianoRollEditorView(const CRect& size) : CViewContainer(siz
     noteGrid = new NoteGridView(CRect(0, 0, 4000, 20 * 127), styleSheet);
     
     // Create scroll view for grid
-    viewportGrid = new CustomScrollView(CRect(80, 50, size.right - 10, size.bottom - 60), noteGrid);
+    CRect gridViewportSize(80, 50, size.right - 10, size.bottom - 60);
+    CRect gridContainerSize(0, 0, 4000, 20 * 127);
+    viewportGrid = new CustomScrollView(gridViewportSize, gridContainerSize);
     viewportGrid->setScrollbarWidth(10);
+    viewportGrid->addView(noteGrid);
     addView(viewportGrid);
     
     // Create timeline
     timelineComp = new TimelineView(CRect(0, 0, 100, 45));
-    viewportTimeline = new CScrollView(CRect(80, 5, size.right - 10, 50), timelineComp, 
-                                       CScrollView::Style(0)); // No scrollbars
+    CRect timelineViewportSize(80, 5, size.right - 10, 50);
+    CRect timelineContainerSize(0, 0, 4000, 45);
+    viewportTimeline = new CScrollView(timelineViewportSize, timelineContainerSize, 0); // No scrollbars
+    viewportTimeline->addView(timelineComp);
     addView(viewportTimeline);
     
     // Create keyboard
     keyboardComp = new KeyboardView(CRect(0, 0, 70, 20 * 127));
-    viewportPiano = new CScrollView(CRect(5, 50, 75, size.bottom - 60), keyboardComp,
-                                    CScrollView::Style(0)); // No scrollbars
+    CRect keyboardViewportSize(5, 50, 75, size.bottom - 60);
+    CRect keyboardContainerSize(0, 0, 70, 20 * 127);
+    viewportPiano = new CScrollView(keyboardViewportSize, keyboardContainerSize, 0); // No scrollbars
+    viewportPiano->addView(keyboardComp);
     addView(viewportPiano);
     
     // Synchronize scroll positions
@@ -82,9 +89,19 @@ void PianoRollEditorView::setup(const int bars, const int pixelsPerBar, const in
         noteGrid->setupGrid(pixelsPerBar, noteHeight, bars);
         timelineComp->setup(bars, pixelsPerBar);
         
+        // Update container sizes for scroll views
+        CRect gridContainerSize(0, 0, pixelsPerBar * bars, noteHeight * 128);
+        viewportGrid->setContainerSize(gridContainerSize.getSize());
+        
+        CRect timelineContainerSize(0, 0, pixelsPerBar * bars, timelineComp->getHeight());
+        viewportTimeline->setContainerSize(timelineContainerSize.getSize());
+        
         CRect keyRect = keyboardComp->getViewSize();
         keyRect.setHeight(noteGrid->getHeight());
         keyboardComp->setViewSize(keyRect);
+        
+        CRect keyboardContainerSize(0, 0, 70, noteGrid->getHeight());
+        viewportPiano->setContainerSize(keyboardContainerSize.getSize());
         
         invalid();
     }
@@ -99,9 +116,19 @@ void PianoRollEditorView::updateBars(const int newNumberOfBars)
         noteGrid->setupGrid(pPb, nH, newNumberOfBars);
         timelineComp->setup(newNumberOfBars, pPb);
         
+        // Update container sizes for scroll views
+        CRect gridContainerSize(0, 0, pPb * newNumberOfBars, nH * 128);
+        viewportGrid->setContainerSize(gridContainerSize.getSize());
+        
+        CRect timelineContainerSize(0, 0, pPb * newNumberOfBars, timelineComp->getHeight());
+        viewportTimeline->setContainerSize(timelineContainerSize.getSize());
+        
         CRect keyRect = keyboardComp->getViewSize();
         keyRect.setHeight(noteGrid->getHeight());
         keyboardComp->setViewSize(keyRect);
+        
+        CRect keyboardContainerSize(0, 0, 70, noteGrid->getHeight());
+        viewportPiano->setContainerSize(keyboardContainerSize.getSize());
         
         invalid();
     }

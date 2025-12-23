@@ -20,6 +20,11 @@ Complete step-by-step guide for setting up the VSTGUI Piano Roll Editor on Windo
    - Download from: https://git-scm.com/download/win
    - Or use: `winget install Git.Git`
 
+4. **VSTGUI Library**
+   - Clone from: https://github.com/steinbergmedia/vstgui.git
+   - **Version:** Compatible with VSTGUI 4.10+ (uses newer API)
+   - The implementation requires the latest VSTGUI with updated `CScrollView` API
+
 ## Step-by-Step Setup
 
 ### Method 1: Using Visual Studio (Recommended for Beginners)

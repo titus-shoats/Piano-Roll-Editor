@@ -25,6 +25,8 @@ The VSTGUI version recreates the UI of the original JUCE-based Piano Roll Editor
 1. CMake 3.15 or higher
 2. C++17 compatible compiler
 3. VSTGUI library (https://github.com/steinbergmedia/vstgui)
+   - **Note:** This implementation is compatible with VSTGUI 4.10+ (tested with latest master branch)
+   - The code uses the newer VSTGUI API with `CScrollView` constructor changes
 
 #### Windows-Specific Prerequisites
 - **Visual Studio 2019 or 2022** (Community Edition is free)

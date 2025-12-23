@@ -20,8 +20,8 @@
 class CustomScrollView : public CScrollView
 {
 public:
-    CustomScrollView(const CRect& size, CView* view) 
-        : CScrollView(size, view, CScrollView::kHorizontalScrollbar | CScrollView::kVerticalScrollbar)
+    CustomScrollView(const CRect& size, const CRect& containerSize) 
+        : CScrollView(size, containerSize, CScrollView::kHorizontalScrollbar | CScrollView::kVerticalScrollbar)
     {
     }
     
