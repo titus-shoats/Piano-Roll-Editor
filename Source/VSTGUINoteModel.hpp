@@ -64,7 +64,7 @@ class PRESequence { //Piano Roll Editor Sequence
 public:
     std::vector<NoteModel> events;
     int tsLow;
-    int tsHight;
+    int tsHight;  // Note: Typo from original - kept for compatibility
     
     int lowNote;
     int highNote;
