@@ -20,6 +20,84 @@ else()
     message(WARNING "You can download VSTGUI from: https://github.com/steinbergmedia/vstgui")
 endif()
 
+# VSTGUI library source files
+set(VSTGUI_LIB_SOURCES
+    ${VSTGUI_PATH}/vstgui/lib/animation/animations.cpp
+    ${VSTGUI_PATH}/vstgui/lib/animation/animator.cpp
+    ${VSTGUI_PATH}/vstgui/lib/animation/timingfunctions.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cbitmap.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cbitmapfilter.cpp
+    ${VSTGUI_PATH}/vstgui/lib/ccolor.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cdatabrowser.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cdrawcontext.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cdrawmethods.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cdropsource.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cfileselector.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cfont.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cframe.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cgradient.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cgraphicspath.cpp
+    ${VSTGUI_PATH}/vstgui/lib/clayeredviewcontainer.cpp
+    ${VSTGUI_PATH}/vstgui/lib/clinestyle.cpp
+    ${VSTGUI_PATH}/vstgui/lib/coffscreencontext.cpp
+    ${VSTGUI_PATH}/vstgui/lib/copenglview.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cpoint.cpp
+    ${VSTGUI_PATH}/vstgui/lib/crect.cpp
+    ${VSTGUI_PATH}/vstgui/lib/crowcolumnview.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cscrollview.cpp
+    ${VSTGUI_PATH}/vstgui/lib/csearchtextedit.cpp
+    ${VSTGUI_PATH}/vstgui/lib/csegmentbutton.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cshadowviewcontainer.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cslider.cpp
+    ${VSTGUI_PATH}/vstgui/lib/csplitview.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cstring.cpp
+    ${VSTGUI_PATH}/vstgui/lib/ctabview.cpp
+    ${VSTGUI_PATH}/vstgui/lib/ctextlabel.cpp
+    ${VSTGUI_PATH}/vstgui/lib/ctooltipsupport.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cview.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cviewcontainer.cpp
+    ${VSTGUI_PATH}/vstgui/lib/cvstguitimer.cpp
+    ${VSTGUI_PATH}/vstgui/lib/events.cpp
+    ${VSTGUI_PATH}/vstgui/lib/platform/common/genericoptionmenu.cpp
+    ${VSTGUI_PATH}/vstgui/lib/platform/common/generictextedit.cpp
+)
+
+# Platform-specific VSTGUI sources
+if(WIN32)
+    list(APPEND VSTGUI_LIB_SOURCES
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/win32support.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/win32frame.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/win32resourcestream.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/winfileselector.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/winstring.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/wintimer.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/direct2d/d2dbitmap.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/direct2d/d2ddrawcontext.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/direct2d/d2dfont.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/win32/direct2d/d2dgraphicspath.cpp
+    )
+elseif(APPLE)
+    list(APPEND VSTGUI_LIB_SOURCES
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/macstring.mm
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/macfileselector.mm
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/mactimer.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/macclipboard.mm
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/macglobals.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/cfontmac.mm
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/cgdrawcontext.mm
+        ${VSTGUI_PATH}/vstgui/lib/platform/mac/macframe.mm
+    )
+else()
+    list(APPEND VSTGUI_LIB_SOURCES
+        ${VSTGUI_PATH}/vstgui/lib/platform/linux/x11frame.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/linux/x11platform.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/linux/cairocontext.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/linux/cairofont.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/linux/cairogradient.cpp
+        ${VSTGUI_PATH}/vstgui/lib/platform/linux/cairopath.cpp
+    )
+endif()
+
 # Source files for VSTGUI version
 set(VSTGUI_SOURCES
     Source/VSTGUIMain.cpp
@@ -34,7 +112,7 @@ set(VSTGUI_SOURCES
 )
 
 # Create executable
-add_executable(PianoRollEditor_VSTGUI ${VSTGUI_SOURCES})
+add_executable(PianoRollEditor_VSTGUI ${VSTGUI_SOURCES} ${VSTGUI_LIB_SOURCES})
 
 # Include directories
 target_include_directories(PianoRollEditor_VSTGUI PRIVATE
@@ -56,6 +134,10 @@ if(WIN32)
         shell32
         ole32
         uuid
+        d2d1
+        dwrite
+        windowscodecs
+        shlwapi
     )
 elseif(APPLE)
     target_compile_definitions(PianoRollEditor_VSTGUI PRIVATE MAC=1)
