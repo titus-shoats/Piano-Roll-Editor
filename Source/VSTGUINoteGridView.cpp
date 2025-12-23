@@ -5,10 +5,10 @@
 
 #include "VSTGUINoteGridView.hpp"
 
-#define RETURN_IF_EDITING_DISABLED if(styleSheet.disableEditing) { return; }
+#define RETURN_IF_EDITING_DISABLED if(styleSheet.disableEditing) { return kMouseEventNotHandled; }
 
 NoteGridView::NoteGridView(const CRect& size, NoteGridStyleSheet& ss) 
-    : CView(size), styleSheet(ss)
+    : CViewContainer(size), styleSheet(ss)
 {
     blackPitches.push_back(1);
     blackPitches.push_back(3);
@@ -45,6 +45,7 @@ NoteGridView::~NoteGridView()
 
 void NoteGridView::draw(CDrawContext* context)
 {
+    // Draw background first
     context->setFillColor(PRE::Colors::DarkGrey);
     context->drawRect(getViewSize(), kDrawFilled);
     
@@ -97,6 +98,9 @@ void NoteGridView::draw(CDrawContext* context)
         
         line += increment;
     }
+    
+    // Draw child views (notes and selection box)
+    CViewContainer::draw(context);
 }
 
 void NoteGridView::setupGrid(float px, float compHeight, const int bars)

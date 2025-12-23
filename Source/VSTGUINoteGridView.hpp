@@ -29,7 +29,7 @@ public:
     CCoord startX, startY;
 };
 
-class NoteGridView : public CView
+class NoteGridView : public CViewContainer
 {
 public:
     NoteGridView(const CRect& size, NoteGridStyleSheet& styleSheet);
