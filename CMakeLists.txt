@@ -46,7 +46,6 @@ set(VSTGUI_LIB_SOURCES
     ${VSTGUI_PATH}/vstgui/lib/crect.cpp
     ${VSTGUI_PATH}/vstgui/lib/crowcolumnview.cpp
     ${VSTGUI_PATH}/vstgui/lib/cscrollview.cpp
-    ${VSTGUI_PATH}/vstgui/lib/csegmentbutton.cpp
     ${VSTGUI_PATH}/vstgui/lib/cshadowviewcontainer.cpp
     ${VSTGUI_PATH}/vstgui/lib/cslider.cpp
     ${VSTGUI_PATH}/vstgui/lib/csplitview.cpp
