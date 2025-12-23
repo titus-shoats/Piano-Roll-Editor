@@ -91,17 +91,17 @@ void PianoRollEditorView::setup(const int bars, const int pixelsPerBar, const in
         
         // Update container sizes for scroll views
         CRect gridContainerSize(0, 0, pixelsPerBar * bars, noteHeight * 128);
-        viewportGrid->setContainerSize(gridContainerSize.getSize());
+        viewportGrid->setContainerSize(gridContainerSize);
         
         CRect timelineContainerSize(0, 0, pixelsPerBar * bars, timelineComp->getHeight());
-        viewportTimeline->setContainerSize(timelineContainerSize.getSize());
+        viewportTimeline->setContainerSize(timelineContainerSize);
         
         CRect keyRect = keyboardComp->getViewSize();
         keyRect.setHeight(noteGrid->getHeight());
         keyboardComp->setViewSize(keyRect);
         
         CRect keyboardContainerSize(0, 0, 70, noteGrid->getHeight());
-        viewportPiano->setContainerSize(keyboardContainerSize.getSize());
+        viewportPiano->setContainerSize(keyboardContainerSize);
         
         invalid();
     }
@@ -118,17 +118,17 @@ void PianoRollEditorView::updateBars(const int newNumberOfBars)
         
         // Update container sizes for scroll views
         CRect gridContainerSize(0, 0, pPb * newNumberOfBars, nH * 128);
-        viewportGrid->setContainerSize(gridContainerSize.getSize());
+        viewportGrid->setContainerSize(gridContainerSize);
         
         CRect timelineContainerSize(0, 0, pPb * newNumberOfBars, timelineComp->getHeight());
-        viewportTimeline->setContainerSize(timelineContainerSize.getSize());
+        viewportTimeline->setContainerSize(timelineContainerSize);
         
         CRect keyRect = keyboardComp->getViewSize();
         keyRect.setHeight(noteGrid->getHeight());
         keyboardComp->setViewSize(keyRect);
         
         CRect keyboardContainerSize(0, 0, 70, noteGrid->getHeight());
-        viewportPiano->setContainerSize(keyboardContainerSize.getSize());
+        viewportPiano->setContainerSize(keyboardContainerSize);
         
         invalid();
     }
