@@ -26,7 +26,47 @@ The VSTGUI version recreates the UI of the original JUCE-based Piano Roll Editor
 2. C++17 compatible compiler
 3. VSTGUI library (https://github.com/steinbergmedia/vstgui)
 
+#### Windows-Specific Prerequisites
+- **Visual Studio 2019 or 2022** (Community Edition is free)
+  - Download from: https://visualstudio.microsoft.com/downloads/
+  - During installation, select "Desktop development with C++"
+- **CMake 3.15+** - Download from https://cmake.org/download/
+- **Git for Windows** - Download from https://git-scm.com/download/win
+
 #### Build Instructions
+
+##### Windows (Visual Studio)
+
+```cmd
+# Clone VSTGUI and this repository
+cd C:\Projects
+git clone https://github.com/steinbergmedia/vstgui.git
+git clone https://github.com/titus-shoats/Piano-Roll-Editor.git
+
+# Build with Visual Studio 2022
+cd Piano-Roll-Editor
+mkdir build
+cd build
+cmake .. -DVSTGUI_PATH=C:/Projects/vstgui -G "Visual Studio 17 2022"
+cmake --build . --config Release
+
+# Run
+Release\PianoRollEditor_VSTGUI.exe
+```
+
+**For Visual Studio 2019**, use `-G "Visual Studio 16 2019"` instead.
+
+**Alternative: Using Visual Studio GUI**
+1. Open Visual Studio
+2. Select "Open a local folder" → Navigate to `Piano-Roll-Editor`
+3. Go to **Project → CMake Settings**
+4. Add CMake variable: `VSTGUI_PATH` = `C:/Projects/vstgui`
+5. Click "Save and generate CMake cache"
+6. Build with **Build → Build All** or `Ctrl+Shift+B`
+
+See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed Windows setup guide including troubleshooting and integration examples.
+
+##### Linux / macOS
 
 ```bash
 # Clone or download VSTGUI
