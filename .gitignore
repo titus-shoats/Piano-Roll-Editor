@@ -6,3 +6,16 @@ PianoRollEditor\.jucer
 Builds/
 
 JuceLibraryCode/
+
+# VSTGUI build artifacts
+build/
+cmake-build-*/
+*.cmake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
