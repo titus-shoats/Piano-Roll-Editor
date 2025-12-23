@@ -37,6 +37,7 @@ public:
     void onMouseMove(int x, int y, WPARAM wParam);
     void onMouseDown(int x, int y, WPARAM wParam);
     void onMouseUp(int x, int y, WPARAM wParam);
+    void onMouseDoubleClick(int x, int y, WPARAM wParam);
     void onMouseWheel(int delta);
     void onKeyDown(WPARAM key);
     void onHScroll(WPARAM wParam, LPARAM lParam);
@@ -100,8 +101,15 @@ private:
     
     bool m_isDragging;
     bool m_isSelecting;
+    bool m_isResizing;
     POINT m_dragStart;
     RECT m_selectionRect;
+    
+    int m_draggedNoteIndex;
+    int m_resizedNoteIndex;
+    int m_resizeStartWidth;
+    POINT m_lastMousePos;
+    st_int m_lastPlaybackTicks;
     
     int m_quantization;
     

@@ -86,7 +86,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONDBLCLK:
         {
             if (g_editor) {
-                g_editor->onMouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
+                g_editor->onMouseDoubleClick(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
             }
             return 0;
         }

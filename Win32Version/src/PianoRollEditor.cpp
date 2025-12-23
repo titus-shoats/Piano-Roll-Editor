@@ -28,6 +28,7 @@ PianoRollEditor::PianoRollEditor(HWND hwnd)
     , m_showControlPanel(true)
     , m_isDragging(false)
     , m_isSelecting(false)
+    , m_isResizing(false)
     , m_quantization(PRE::quantisedDivisionValues[PRE::eQuantisationValue1_16])
     , m_sliderPixelsPerBar(NULL)
     , m_sliderNoteHeight(NULL)
@@ -41,7 +42,14 @@ PianoRollEditor::PianoRollEditor(HWND hwnd)
     , m_drawMIDINotes(true)
     , m_drawMIDIText(false)
     , m_drawVelocity(false)
+    , m_draggedNoteIndex(-1)
+    , m_resizedNoteIndex(-1)
+    , m_resizeStartWidth(0)
+    , m_lastPlaybackTicks(0)
 {
+    m_lastMousePos.x = 0;
+    m_lastMousePos.y = 0;
+    
     // Initialize common controls
     INITCOMMONCONTROLSEX icex;
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
@@ -105,13 +113,22 @@ PRESequence PianoRollEditor::getSequence()
 
 void PianoRollEditor::setPlaybackMarkerPosition(const st_int ticks, bool isVisible, bool invalidate)
 {
+    if (invalidate && m_showPlaybackMarker) {
+        // Invalidate old marker position
+        int oldX = m_keyboardWidth + tickToPixel(m_lastPlaybackTicks) - m_scrollX;
+        RECT oldMarkerRect = {oldX - 3, 0, oldX + 3, m_height};
+        InvalidateRect(m_hwnd, &oldMarkerRect, FALSE);
+    }
+    
+    m_lastPlaybackTicks = m_playbackTicks;
     m_playbackTicks = ticks;
     m_showPlaybackMarker = isVisible;
-    if (invalidate) {
-        // Only invalidate the playback marker area to reduce flicker
-        int x = m_keyboardWidth + tickToPixel(m_playbackTicks) - m_scrollX;
-        RECT markerRect = {x - 5, 0, x + 5, m_height};
-        InvalidateRect(m_hwnd, &markerRect, FALSE);
+    
+    if (invalidate && m_showPlaybackMarker) {
+        // Invalidate new marker position
+        int newX = m_keyboardWidth + tickToPixel(m_playbackTicks) - m_scrollX;
+        RECT newMarkerRect = {newX - 3, 0, newX + 3, m_height};
+        InvalidateRect(m_hwnd, &newMarkerRect, FALSE);
     }
 }
 
@@ -395,9 +412,83 @@ void PianoRollEditor::onSize(int width, int height)
 
 void PianoRollEditor::onMouseMove(int x, int y, WPARAM wParam)
 {
-    if (m_isDragging) {
-        // Handle note dragging
-    } else if (m_isSelecting) {
+    // Update cursor based on position
+    if (!m_isDragging && !m_isResizing && !m_isSelecting) {
+        // Check if mouse is over a note's right edge for resizing
+        bool overResizeEdge = false;
+        for (size_t i = 0; i < m_noteRects.size(); i++) {
+            const auto& nr = m_noteRects[i];
+            if (PtInRect(&nr.rect, {x, y})) {
+                // Check if near right edge (within 8 pixels)
+                if (x >= nr.rect.right - 8 && x <= nr.rect.right) {
+                    SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+                    overResizeEdge = true;
+                    break;
+                }
+            }
+        }
+        if (!overResizeEdge) {
+            SetCursor(LoadCursor(NULL, IDC_ARROW));
+        }
+    }
+    
+    if (m_isDragging && m_draggedNoteIndex >= 0 && m_draggedNoteIndex < (int)m_notes.size()) {
+        // Calculate drag delta
+        int deltaX = x - m_lastMousePos.x;
+        int deltaY = y - m_lastMousePos.y;
+        
+        // Convert delta to ticks and note change
+        int deltaTicks = (deltaX * PRE::defaultResolution * 4) / m_pixelsPerBar;
+        int deltaNotes = -deltaY / m_noteHeight;
+        
+        if (deltaTicks != 0 || deltaNotes != 0) {
+            NoteModel& note = m_notes[m_draggedNoteIndex];
+            
+            // Update note position
+            int newStartTime = (int)note.getStartTime() + deltaTicks;
+            int newNote = (int)note.getNote() + deltaNotes;
+            
+            // Clamp values
+            newStartTime = std::max(0, newStartTime);
+            newNote = std::max(0, std::min(127, newNote));
+            
+            note.setStartTime(newStartTime);
+            note.setNote(newNote);
+            
+            m_lastMousePos.x = x;
+            m_lastMousePos.y = y;
+            
+            InvalidateRect(m_hwnd, NULL, TRUE);
+            
+            if (onEdit) {
+                onEdit();
+            }
+        }
+    }
+    else if (m_isResizing && m_resizedNoteIndex >= 0 && m_resizedNoteIndex < (int)m_notes.size()) {
+        // Calculate resize delta
+        int deltaX = x - m_lastMousePos.x;
+        int deltaTicks = (deltaX * PRE::defaultResolution * 4) / m_pixelsPerBar;
+        
+        if (deltaTicks != 0) {
+            NoteModel& note = m_notes[m_resizedNoteIndex];
+            
+            // Update note length
+            int newLength = (int)note.getNoteLegnth() + deltaTicks;
+            newLength = std::max(PRE::defaultResolution / 16, newLength); // Minimum 1/64 note
+            
+            note.setNoteLegnth(newLength);
+            
+            m_lastMousePos.x = x;
+            
+            InvalidateRect(m_hwnd, NULL, TRUE);
+            
+            if (onEdit) {
+                onEdit();
+            }
+        }
+    }
+    else if (m_isSelecting) {
         m_selectionRect.right = x;
         m_selectionRect.bottom = y;
         InvalidateRect(m_hwnd, NULL, TRUE);
@@ -408,28 +499,61 @@ void PianoRollEditor::onMouseDown(int x, int y, WPARAM wParam)
 {
     if (x < m_keyboardWidth || y < m_timelineHeight) return;
     
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    if (y >= gridBottom) return;
+    
     bool ctrlPressed = (wParam & MK_CONTROL) != 0;
+    bool shiftPressed = (wParam & MK_SHIFT) != 0;
     
     // Check if clicking on existing note
     bool clickedNote = false;
-    for (auto& nr : m_noteRects) {
+    int clickedNoteIndex = -1;
+    RECT clickedNoteRect = {0};
+    
+    for (size_t i = 0; i < m_noteRects.size(); i++) {
+        const auto& nr = m_noteRects[i];
         if (PtInRect(&nr.rect, {x, y})) {
             clickedNote = true;
+            clickedNoteRect = nr.rect;
+            
+            // Find the actual note in m_notes vector
+            for (size_t j = 0; j < m_notes.size(); j++) {
+                if (&m_notes[j] == nr.model) {
+                    clickedNoteIndex = j;
+                    break;
+                }
+            }
             break;
         }
     }
     
-    if (!clickedNote) {
-        // Start selection or create new note
-        if (wParam & MK_LBUTTON) {
-            if (wParam & MK_SHIFT) {
-                m_isSelecting = true;
-                m_selectionRect = {x, y, x, y};
-            } else {
-                // Double-click creates note
-                addNote(x, y);
-            }
+    if (clickedNote && clickedNoteIndex >= 0) {
+        // Check if clicking on right edge for resizing
+        if (x >= clickedNoteRect.right - 8 && x <= clickedNoteRect.right) {
+            // Start resizing
+            m_isResizing = true;
+            m_resizedNoteIndex = clickedNoteIndex;
+            m_resizeStartWidth = clickedNoteRect.right - clickedNoteRect.left;
+            m_lastMousePos.x = x;
+            m_lastMousePos.y = y;
+            SetCursor(LoadCursor(NULL, IDC_SIZEWE));
         }
+        else {
+            // Start dragging
+            m_isDragging = true;
+            m_draggedNoteIndex = clickedNoteIndex;
+            m_lastMousePos.x = x;
+            m_lastMousePos.y = y;
+        }
+    }
+    else {
+        // No note clicked
+        if (shiftPressed) {
+            // Start selection rectangle
+            m_isSelecting = true;
+            m_selectionRect = {x, y, x, y};
+        }
+        // Note: Double-click will be handled by WM_LBUTTONDBLCLK to create notes
     }
 }
 
@@ -440,7 +564,30 @@ void PianoRollEditor::onMouseUp(int x, int y, WPARAM wParam)
         m_isSelecting = false;
         InvalidateRect(m_hwnd, NULL, TRUE);
     }
-    m_isDragging = false;
+    
+    if (m_isDragging) {
+        m_isDragging = false;
+        m_draggedNoteIndex = -1;
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
+    }
+    
+    if (m_isResizing) {
+        m_isResizing = false;
+        m_resizedNoteIndex = -1;
+        m_resizeStartWidth = 0;
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
+    }
+}
+
+void PianoRollEditor::onMouseDoubleClick(int x, int y, WPARAM wParam)
+{
+    if (x < m_keyboardWidth || y < m_timelineHeight) return;
+    
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    if (y >= gridBottom) return;
+    
+    // Add a new note at the double-click position
+    addNote(x, y);
 }
 
 void PianoRollEditor::onMouseWheel(int delta)
