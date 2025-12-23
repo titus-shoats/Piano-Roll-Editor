@@ -70,7 +70,11 @@ void PianoRollEditor::setup(const int bars, const int pixelsPerBar, const int no
         m_pixelsPerBar = pixelsPerBar;
         m_noteHeight = noteHeight;
         updateScrollBars();
-        InvalidateRect(m_hwnd, NULL, TRUE);
+        
+        // Invalidate only the grid area, not the entire window
+        int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+        RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+        InvalidateRect(m_hwnd, &gridRect, FALSE);
     }
 }
 
@@ -79,14 +83,24 @@ void PianoRollEditor::updateBars(const int newNumberOfBars)
     if (newNumberOfBars > 1 && newNumberOfBars < 1000) {
         m_bars = newNumberOfBars;
         updateScrollBars();
-        InvalidateRect(m_hwnd, NULL, TRUE);
+        
+        // Invalidate only the grid area, not the entire window
+        int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+        RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+        InvalidateRect(m_hwnd, &gridRect, FALSE);
+    }
+}
     }
 }
 
 void PianoRollEditor::loadSequence(PRESequence sequence)
 {
     m_notes = sequence.events;
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    
+    // Invalidate only the grid area, not the entire window
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+    InvalidateRect(m_hwnd, &gridRect, FALSE);
 }
 
 PRESequence PianoRollEditor::getSequence()
@@ -137,7 +151,11 @@ void PianoRollEditor::setScroll(int x, int y)
     m_scrollX = x;
     m_scrollY = y;
     updateScrollBars();
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    
+    // Invalidate only the grid area, not the entire window
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+    InvalidateRect(m_hwnd, &gridRect, FALSE);
 }
 
 void PianoRollEditor::onPaint(HDC hdc)
@@ -458,7 +476,10 @@ void PianoRollEditor::onMouseMove(int x, int y, WPARAM wParam)
             m_lastMousePos.x = x;
             m_lastMousePos.y = y;
             
-            InvalidateRect(m_hwnd, NULL, TRUE);
+            // Invalidate only the grid area, not the entire window
+            int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+            RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+            InvalidateRect(m_hwnd, &gridRect, FALSE);
             
             if (onEdit) {
                 onEdit();
@@ -481,7 +502,10 @@ void PianoRollEditor::onMouseMove(int x, int y, WPARAM wParam)
             
             m_lastMousePos.x = x;
             
-            InvalidateRect(m_hwnd, NULL, TRUE);
+            // Invalidate only the grid area, not the entire window
+            int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+            RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+            InvalidateRect(m_hwnd, &gridRect, FALSE);
             
             if (onEdit) {
                 onEdit();
@@ -491,7 +515,11 @@ void PianoRollEditor::onMouseMove(int x, int y, WPARAM wParam)
     else if (m_isSelecting) {
         m_selectionRect.right = x;
         m_selectionRect.bottom = y;
-        InvalidateRect(m_hwnd, NULL, TRUE);
+        
+        // Invalidate only the grid area, not the entire window
+        int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+        RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+        InvalidateRect(m_hwnd, &gridRect, FALSE);
     }
 }
 
@@ -562,7 +590,11 @@ void PianoRollEditor::onMouseUp(int x, int y, WPARAM wParam)
     if (m_isSelecting) {
         selectNotesInRect(m_selectionRect);
         m_isSelecting = false;
-        InvalidateRect(m_hwnd, NULL, TRUE);
+        
+        // Invalidate only the grid area, not the entire window
+        int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+        RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+        InvalidateRect(m_hwnd, &gridRect, FALSE);
     }
     
     if (m_isDragging) {
@@ -594,7 +626,11 @@ void PianoRollEditor::onMouseWheel(int delta)
 {
     m_scrollY -= delta / 3;
     updateScrollBars();
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    
+    // Invalidate only the grid area, not the entire window
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+    InvalidateRect(m_hwnd, &gridRect, FALSE);
 }
 
 void PianoRollEditor::onKeyDown(WPARAM key)
@@ -640,7 +676,11 @@ void PianoRollEditor::onHScroll(WPARAM wParam, LPARAM lParam)
     
     m_scrollX = std::max(0, std::min(maxScroll, m_scrollX));
     updateScrollBars();
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    
+    // Invalidate only the grid area, not the entire window
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+    InvalidateRect(m_hwnd, &gridRect, FALSE);
 }
 
 void PianoRollEditor::onVScroll(WPARAM wParam, LPARAM lParam)
@@ -663,7 +703,11 @@ void PianoRollEditor::onVScroll(WPARAM wParam, LPARAM lParam)
     
     m_scrollY = std::max(0, std::min(maxScroll, m_scrollY));
     updateScrollBars();
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    
+    // Invalidate only the grid area, not the entire window
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+    InvalidateRect(m_hwnd, &gridRect, FALSE);
 }
 
 void PianoRollEditor::addNote(int x, int y)
@@ -692,13 +736,20 @@ void PianoRollEditor::addNote(int x, int y)
         onEdit();
     }
     
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    // Invalidate only the grid area, not the entire window
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+    InvalidateRect(m_hwnd, &gridRect, FALSE);
 }
 
 void PianoRollEditor::deleteSelectedNotes()
 {
     // Placeholder for selection logic
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    
+    // Invalidate only the grid area, not the entire window
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+    InvalidateRect(m_hwnd, &gridRect, FALSE);
 }
 
 void PianoRollEditor::selectNote(int x, int y, bool addToSelection)
@@ -881,17 +932,29 @@ void PianoRollEditor::onCommand(WPARAM wParam, LPARAM lParam)
     switch (controlId) {
         case ID_CHECK_DRAW_NOTES:
             m_drawMIDINotes = (SendMessage(m_checkDrawMIDINotes, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            InvalidateRect(m_hwnd, NULL, TRUE);
+            {
+                int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+                RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+                InvalidateRect(m_hwnd, &gridRect, FALSE);
+            }
             break;
             
         case ID_CHECK_DRAW_TEXT:
             m_drawMIDIText = (SendMessage(m_checkDrawMIDIText, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            InvalidateRect(m_hwnd, NULL, TRUE);
+            {
+                int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+                RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+                InvalidateRect(m_hwnd, &gridRect, FALSE);
+            }
             break;
             
         case ID_CHECK_DRAW_VELOCITY:
             m_drawVelocity = (SendMessage(m_checkDrawVelocity, BM_GETCHECK, 0, 0) == BST_CHECKED);
-            InvalidateRect(m_hwnd, NULL, TRUE);
+            {
+                int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+                RECT gridRect = {m_keyboardWidth, m_timelineHeight, m_width, gridBottom};
+                InvalidateRect(m_hwnd, &gridRect, FALSE);
+            }
             break;
             
         case ID_COMBO_QUANTIZATION:

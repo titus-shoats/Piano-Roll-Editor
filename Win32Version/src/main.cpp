@@ -40,12 +40,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             if (wParam == TIMER_PLAYBACK && g_editor) {
                 g_tickTest += 20;
-                g_editor->setPlaybackMarkerPosition(g_tickTest, true, false); // Don't invalidate entire window
+                g_editor->setPlaybackMarkerPosition(g_tickTest, true, true); // Enable invalidation for smooth movement
                 if (g_tickTest >= 480 * 4 * 10) {
                     g_tickTest = 0;
                 }
             }
             return 0;
+        }
+        
+        case WM_ERASEBKGND:
+        {
+            // Return 1 to prevent background erase - we handle it in WM_PAINT
+            return 1;
         }
         
         case WM_PAINT:
@@ -165,7 +171,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-    wc.style = CS_DBLCLKS; // Enable double-click messages
+    wc.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW; // Enable double-click and redraw on resize
     
     if (!RegisterClass(&wc)) {
         MessageBox(NULL, L"Window Registration Failed!", L"Error", MB_ICONEXCLAMATION | MB_OK);
@@ -177,7 +183,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         0,
         CLASS_NAME,
         L"Win32 Piano Roll Editor",
-        WS_OVERLAPPEDWINDOW | WS_HSCROLL | WS_VSCROLL,
+        WS_OVERLAPPEDWINDOW | WS_HSCROLL | WS_VSCROLL | WS_CLIPCHILDREN,
         CW_USEDEFAULT, CW_USEDEFAULT,
         800, 600,
         NULL,
