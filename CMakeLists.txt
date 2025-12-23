@@ -57,6 +57,7 @@ set(VSTGUI_LIB_SOURCES
     ${VSTGUI_PATH}/vstgui/lib/cviewcontainer.cpp
     ${VSTGUI_PATH}/vstgui/lib/cvstguitimer.cpp
     ${VSTGUI_PATH}/vstgui/lib/events.cpp
+    ${VSTGUI_PATH}/vstgui/lib/vstassert.cpp
     ${VSTGUI_PATH}/vstgui/lib/platform/common/genericoptionmenu.cpp
     ${VSTGUI_PATH}/vstgui/lib/platform/common/generictextedit.cpp
 )
