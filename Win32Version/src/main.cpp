@@ -40,7 +40,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             if (wParam == TIMER_PLAYBACK && g_editor) {
                 g_tickTest += 20;
-                g_editor->setPlaybackMarkerPosition(g_tickTest);
+                g_editor->setPlaybackMarkerPosition(g_tickTest, true, false); // Don't invalidate entire window
                 if (g_tickTest >= 480 * 4 * 10) {
                     g_tickTest = 0;
                 }
@@ -119,7 +119,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_HSCROLL:
         {
             if (g_editor) {
-                g_editor->onHScroll(wParam);
+                g_editor->onHScroll(wParam, lParam);
             }
             return 0;
         }
@@ -127,7 +127,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_VSCROLL:
         {
             if (g_editor) {
-                g_editor->onVScroll(wParam);
+                g_editor->onVScroll(wParam, lParam);
+            }
+            return 0;
+        }
+        
+        case WM_COMMAND:
+        {
+            if (g_editor) {
+                g_editor->onCommand(wParam, lParam);
             }
             return 0;
         }

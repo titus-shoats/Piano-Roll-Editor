@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <windowsx.h>
 
+#pragma comment(lib, "comctl32.lib")
+
 PianoRollEditor::PianoRollEditor(HWND hwnd)
     : m_hwnd(hwnd)
     , m_width(800)
@@ -22,10 +24,31 @@ PianoRollEditor::PianoRollEditor(HWND hwnd)
     , m_showPlaybackMarker(false)
     , m_keyboardWidth(80)
     , m_timelineHeight(50)
+    , m_controlPanelHeight(140)
+    , m_showControlPanel(true)
     , m_isDragging(false)
     , m_isSelecting(false)
     , m_quantization(PRE::quantisedDivisionValues[PRE::eQuantisationValue1_16])
+    , m_sliderPixelsPerBar(NULL)
+    , m_sliderNoteHeight(NULL)
+    , m_checkDrawMIDINotes(NULL)
+    , m_checkDrawMIDIText(NULL)
+    , m_checkDrawVelocity(NULL)
+    , m_comboQuantization(NULL)
+    , m_labelPixelsPerBar(NULL)
+    , m_labelNoteHeight(NULL)
+    , m_labelQuantization(NULL)
+    , m_drawMIDINotes(true)
+    , m_drawMIDIText(false)
+    , m_drawVelocity(false)
 {
+    // Initialize common controls
+    INITCOMMONCONTROLSEX icex;
+    icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    icex.dwICC = ICC_STANDARD_CLASSES | ICC_BAR_CLASSES;
+    InitCommonControlsEx(&icex);
+    
+    createControlPanel();
 }
 
 PianoRollEditor::~PianoRollEditor()
@@ -80,11 +103,16 @@ PRESequence PianoRollEditor::getSequence()
     return seq;
 }
 
-void PianoRollEditor::setPlaybackMarkerPosition(const st_int ticks, bool isVisible)
+void PianoRollEditor::setPlaybackMarkerPosition(const st_int ticks, bool isVisible, bool invalidate)
 {
     m_playbackTicks = ticks;
     m_showPlaybackMarker = isVisible;
-    InvalidateRect(m_hwnd, NULL, TRUE);
+    if (invalidate) {
+        // Only invalidate the playback marker area to reduce flicker
+        int x = m_keyboardWidth + tickToPixel(m_playbackTicks) - m_scrollX;
+        RECT markerRect = {x - 5, 0, x + 5, m_height};
+        InvalidateRect(m_hwnd, &markerRect, FALSE);
+    }
 }
 
 void PianoRollEditor::setScroll(int x, int y)
@@ -115,6 +143,10 @@ void PianoRollEditor::onPaint(HDC hdc)
     paintNotes(memDC);
     paintKeyboard(memDC);
     paintTimeline(memDC);
+    
+    if (m_showControlPanel) {
+        paintControlPanel(memDC);
+    }
     
     if (m_showPlaybackMarker) {
         paintPlaybackMarker(memDC);
@@ -151,12 +183,13 @@ void PianoRollEditor::paintGrid(HDC hdc)
     int gridLeft = m_keyboardWidth;
     int gridTop = m_timelineHeight;
     int gridWidth = m_width - m_keyboardWidth;
-    int gridHeight = m_height - m_timelineHeight;
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    int gridHeight = gridBottom - m_timelineHeight;
     
     // Draw horizontal lines (notes)
     for (int i = 0; i <= 127; i++) {
         int y = gridTop + i * m_noteHeight - m_scrollY;
-        if (y >= gridTop && y < m_height) {
+        if (y >= gridTop && y < gridBottom) {
             MoveToEx(hdc, gridLeft, y, NULL);
             LineTo(hdc, m_width, y);
         }
@@ -167,7 +200,7 @@ void PianoRollEditor::paintGrid(HDC hdc)
         int x = gridLeft + i * m_pixelsPerBar - m_scrollX;
         if (x >= gridLeft && x < m_width) {
             MoveToEx(hdc, x, gridTop, NULL);
-            LineTo(hdc, x, m_height);
+            LineTo(hdc, x, gridBottom);
         }
         
         // Draw beat subdivisions
@@ -177,7 +210,7 @@ void PianoRollEditor::paintGrid(HDC hdc)
                 HPEN lightPen = CreatePen(PS_DOT, 1, GRID_COLOR);
                 SelectObject(hdc, lightPen);
                 MoveToEx(hdc, beatX, gridTop, NULL);
-                LineTo(hdc, beatX, m_height);
+                LineTo(hdc, beatX, gridBottom);
                 SelectObject(hdc, gridPen);
                 DeleteObject(lightPen);
             }
@@ -192,14 +225,15 @@ void PianoRollEditor::paintKeyboard(HDC hdc)
 {
     static const int blackKeys[] = {1, 3, 6, 8, 10}; // C#, D#, F#, G#, A#
     
-    RECT keyboardRect = {0, m_timelineHeight, m_keyboardWidth, m_height};
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    RECT keyboardRect = {0, m_timelineHeight, m_keyboardWidth, gridBottom};
     HBRUSH bgBrush = CreateSolidBrush(RGB(50, 50, 50));
     FillRect(hdc, &keyboardRect, bgBrush);
     DeleteObject(bgBrush);
     
     for (int i = 0; i < 128; i++) {
         int y = m_timelineHeight + (127 - i) * m_noteHeight - m_scrollY;
-        if (y + m_noteHeight < m_timelineHeight || y > m_height) continue;
+        if (y + m_noteHeight < m_timelineHeight || y > gridBottom) continue;
         
         int noteInOctave = i % 12;
         bool isBlack = false;
@@ -263,6 +297,8 @@ void PianoRollEditor::paintNotes(HDC hdc)
 {
     m_noteRects.clear();
     
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
+    
     for (auto& note : m_notes) {
         int x = m_keyboardWidth + tickToPixel(note.getStartTime()) - m_scrollX;
         int y = m_timelineHeight + (127 - note.getNote()) * m_noteHeight - m_scrollY;
@@ -270,7 +306,7 @@ void PianoRollEditor::paintNotes(HDC hdc)
         int height = m_noteHeight - 2;
         
         if (x + width < m_keyboardWidth || x > m_width ||
-            y + height < m_timelineHeight || y > m_height) {
+            y + height < m_timelineHeight || y > gridBottom) {
             continue;
         }
         
@@ -304,12 +340,13 @@ void PianoRollEditor::paintNotes(HDC hdc)
 void PianoRollEditor::paintPlaybackMarker(HDC hdc)
 {
     int x = m_keyboardWidth + tickToPixel(m_playbackTicks) - m_scrollX;
+    int gridBottom = m_showControlPanel ? (m_height - m_controlPanelHeight) : m_height;
     
     HPEN markerPen = CreatePen(PS_SOLID, 3, RGB(150, 255, 150));
     HPEN oldPen = (HPEN)SelectObject(hdc, markerPen);
     
     MoveToEx(hdc, x, 0, NULL);
-    LineTo(hdc, x, m_height);
+    LineTo(hdc, x, gridBottom);
     
     SelectObject(hdc, oldPen);
     DeleteObject(markerPen);
@@ -319,6 +356,40 @@ void PianoRollEditor::onSize(int width, int height)
 {
     m_width = width;
     m_height = height;
+    
+    // Reposition control panel controls
+    if (m_showControlPanel) {
+        int panelTop = m_height - m_controlPanelHeight;
+        
+        if (m_sliderPixelsPerBar) {
+            SetWindowPos(m_sliderPixelsPerBar, NULL, 10, panelTop + 30, 300, 30, SWP_NOZORDER);
+        }
+        if (m_sliderNoteHeight) {
+            SetWindowPos(m_sliderNoteHeight, NULL, 10, panelTop + 80, 300, 30, SWP_NOZORDER);
+        }
+        if (m_labelPixelsPerBar) {
+            SetWindowPos(m_labelPixelsPerBar, NULL, 10, panelTop + 10, 150, 20, SWP_NOZORDER);
+        }
+        if (m_labelNoteHeight) {
+            SetWindowPos(m_labelNoteHeight, NULL, 10, panelTop + 60, 150, 20, SWP_NOZORDER);
+        }
+        if (m_checkDrawMIDINotes) {
+            SetWindowPos(m_checkDrawMIDINotes, NULL, 320, panelTop + 10, 150, 25, SWP_NOZORDER);
+        }
+        if (m_checkDrawMIDIText) {
+            SetWindowPos(m_checkDrawMIDIText, NULL, 320, panelTop + 45, 150, 25, SWP_NOZORDER);
+        }
+        if (m_checkDrawVelocity) {
+            SetWindowPos(m_checkDrawVelocity, NULL, 320, panelTop + 80, 150, 25, SWP_NOZORDER);
+        }
+        if (m_labelQuantization) {
+            SetWindowPos(m_labelQuantization, NULL, 480, panelTop + 10, 100, 20, SWP_NOZORDER);
+        }
+        if (m_comboQuantization) {
+            SetWindowPos(m_comboQuantization, NULL, 480, panelTop + 30, 100, 200, SWP_NOZORDER);
+        }
+    }
+    
     updateScrollBars();
 }
 
@@ -386,8 +457,26 @@ void PianoRollEditor::onKeyDown(WPARAM key)
     }
 }
 
-void PianoRollEditor::onHScroll(WPARAM wParam)
+void PianoRollEditor::onHScroll(WPARAM wParam, LPARAM lParam)
 {
+    // Check if it's from a trackbar control
+    if (lParam != 0) {
+        HWND hControl = (HWND)lParam;
+        if (hControl == m_sliderPixelsPerBar) {
+            int newValue = SendMessage(m_sliderPixelsPerBar, TBM_GETPOS, 0, 0);
+            m_pixelsPerBar = newValue;
+            setup(m_bars, m_pixelsPerBar, m_noteHeight);
+            return;
+        }
+        else if (hControl == m_sliderNoteHeight) {
+            int newValue = SendMessage(m_sliderNoteHeight, TBM_GETPOS, 0, 0);
+            m_noteHeight = newValue;
+            setup(m_bars, m_pixelsPerBar, m_noteHeight);
+            return;
+        }
+    }
+    
+    // Handle window scrollbar
     int action = LOWORD(wParam);
     int maxScroll = m_bars * m_pixelsPerBar - (m_width - m_keyboardWidth);
     
@@ -407,10 +496,12 @@ void PianoRollEditor::onHScroll(WPARAM wParam)
     InvalidateRect(m_hwnd, NULL, TRUE);
 }
 
-void PianoRollEditor::onVScroll(WPARAM wParam)
+void PianoRollEditor::onVScroll(WPARAM wParam, LPARAM lParam)
 {
+    // lParam is the handle of the scrollbar control (0 for window scrollbar)
     int action = LOWORD(wParam);
-    int maxScroll = 127 * m_noteHeight - (m_height - m_timelineHeight);
+    int gridHeight = m_showControlPanel ? (m_height - m_timelineHeight - m_controlPanelHeight) : (m_height - m_timelineHeight);
+    int maxScroll = 127 * m_noteHeight - gridHeight;
     
     switch (action) {
         case SB_LINEUP: m_scrollY -= m_noteHeight; break;
@@ -515,9 +606,154 @@ void PianoRollEditor::updateScrollBars()
     SetScrollInfo(m_hwnd, SB_HORZ, &si, TRUE);
     
     // Vertical scrollbar
+    int gridHeight = m_showControlPanel ? (m_height - m_timelineHeight - m_controlPanelHeight) : (m_height - m_timelineHeight);
     si.nMin = 0;
     si.nMax = 127 * m_noteHeight;
-    si.nPage = m_height - m_timelineHeight;
+    si.nPage = gridHeight;
     si.nPos = m_scrollY;
     SetScrollInfo(m_hwnd, SB_VERT, &si, TRUE);
+}
+
+void PianoRollEditor::createControlPanel()
+{
+    int panelTop = m_height - m_controlPanelHeight;
+    
+    // Create sliders for pixels per bar and note height
+    m_sliderPixelsPerBar = CreateWindowEx(
+        0, TRACKBAR_CLASS, NULL,
+        WS_CHILD | WS_VISIBLE | TBS_HORZ | TBS_AUTOTICKS,
+        10, panelTop + 30, 300, 30,
+        m_hwnd, (HMENU)ID_SLIDER_PIXELS_PER_BAR, GetModuleHandle(NULL), NULL);
+    
+    SendMessage(m_sliderPixelsPerBar, TBM_SETRANGE, TRUE, MAKELPARAM(400, 2000));
+    SendMessage(m_sliderPixelsPerBar, TBM_SETPOS, TRUE, m_pixelsPerBar);
+    SendMessage(m_sliderPixelsPerBar, TBM_SETTICFREQ, 100, 0);
+    
+    m_sliderNoteHeight = CreateWindowEx(
+        0, TRACKBAR_CLASS, NULL,
+        WS_CHILD | WS_VISIBLE | TBS_HORZ | TBS_AUTOTICKS,
+        10, panelTop + 80, 300, 30,
+        m_hwnd, (HMENU)ID_SLIDER_NOTE_HEIGHT, GetModuleHandle(NULL), NULL);
+    
+    SendMessage(m_sliderNoteHeight, TBM_SETRANGE, TRUE, MAKELPARAM(10, 30));
+    SendMessage(m_sliderNoteHeight, TBM_SETPOS, TRUE, m_noteHeight);
+    SendMessage(m_sliderNoteHeight, TBM_SETTICFREQ, 2, 0);
+    
+    // Create labels
+    m_labelPixelsPerBar = CreateWindowEx(
+        0, L"STATIC", L"Pixels per bar",
+        WS_CHILD | WS_VISIBLE | SS_LEFT,
+        10, panelTop + 10, 150, 20,
+        m_hwnd, NULL, GetModuleHandle(NULL), NULL);
+    
+    m_labelNoteHeight = CreateWindowEx(
+        0, L"STATIC", L"Pixels per row",
+        WS_CHILD | WS_VISIBLE | SS_LEFT,
+        10, panelTop + 60, 150, 20,
+        m_hwnd, NULL, GetModuleHandle(NULL), NULL);
+    
+    // Create checkboxes
+    m_checkDrawMIDINotes = CreateWindowEx(
+        0, L"BUTTON", L"Draw MIDI Notes",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        320, panelTop + 10, 150, 25,
+        m_hwnd, (HMENU)ID_CHECK_DRAW_NOTES, GetModuleHandle(NULL), NULL);
+    SendMessage(m_checkDrawMIDINotes, BM_SETCHECK, m_drawMIDINotes ? BST_CHECKED : BST_UNCHECKED, 0);
+    
+    m_checkDrawMIDIText = CreateWindowEx(
+        0, L"BUTTON", L"Draw MIDI Text",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        320, panelTop + 45, 150, 25,
+        m_hwnd, (HMENU)ID_CHECK_DRAW_TEXT, GetModuleHandle(NULL), NULL);
+    SendMessage(m_checkDrawMIDIText, BM_SETCHECK, m_drawMIDIText ? BST_CHECKED : BST_UNCHECKED, 0);
+    
+    m_checkDrawVelocity = CreateWindowEx(
+        0, L"BUTTON", L"Draw Velocity",
+        WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        320, panelTop + 80, 150, 25,
+        m_hwnd, (HMENU)ID_CHECK_DRAW_VELOCITY, GetModuleHandle(NULL), NULL);
+    SendMessage(m_checkDrawVelocity, BM_SETCHECK, m_drawVelocity ? BST_CHECKED : BST_UNCHECKED, 0);
+    
+    // Create quantization combobox
+    m_labelQuantization = CreateWindowEx(
+        0, L"STATIC", L"Quantization",
+        WS_CHILD | WS_VISIBLE | SS_LEFT,
+        480, panelTop + 10, 100, 20,
+        m_hwnd, NULL, GetModuleHandle(NULL), NULL);
+    
+    m_comboQuantization = CreateWindowEx(
+        0, L"COMBOBOX", NULL,
+        WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST,
+        480, panelTop + 30, 100, 200,
+        m_hwnd, (HMENU)ID_COMBO_QUANTIZATION, GetModuleHandle(NULL), NULL);
+    
+    SendMessage(m_comboQuantization, CB_ADDSTRING, 0, (LPARAM)L"1/64");
+    SendMessage(m_comboQuantization, CB_ADDSTRING, 0, (LPARAM)L"1/32");
+    SendMessage(m_comboQuantization, CB_ADDSTRING, 0, (LPARAM)L"1/16");
+    SendMessage(m_comboQuantization, CB_ADDSTRING, 0, (LPARAM)L"1/8");
+    SendMessage(m_comboQuantization, CB_ADDSTRING, 0, (LPARAM)L"1/4");
+    SendMessage(m_comboQuantization, CB_SETCURSEL, 2, 0); // Default to 1/16
+}
+
+void PianoRollEditor::paintControlPanel(HDC hdc)
+{
+    int panelTop = m_height - m_controlPanelHeight;
+    
+    // Draw panel background
+    RECT panelRect = {0, panelTop, m_width, m_height};
+    HBRUSH panelBrush = CreateSolidBrush(RGB(50, 50, 50));
+    FillRect(hdc, &panelRect, panelBrush);
+    DeleteObject(panelBrush);
+    
+    // Draw separator line
+    HPEN linePen = CreatePen(PS_SOLID, 2, RGB(80, 80, 80));
+    HPEN oldPen = (HPEN)SelectObject(hdc, linePen);
+    MoveToEx(hdc, 0, panelTop, NULL);
+    LineTo(hdc, m_width, panelTop);
+    SelectObject(hdc, oldPen);
+    DeleteObject(linePen);
+    
+    // Note: The actual controls (sliders, checkboxes, combobox) are painted by Windows
+}
+
+void PianoRollEditor::updateControlsFromSettings()
+{
+    if (m_sliderPixelsPerBar) {
+        SendMessage(m_sliderPixelsPerBar, TBM_SETPOS, TRUE, m_pixelsPerBar);
+    }
+    if (m_sliderNoteHeight) {
+        SendMessage(m_sliderNoteHeight, TBM_SETPOS, TRUE, m_noteHeight);
+    }
+}
+
+void PianoRollEditor::onCommand(WPARAM wParam, LPARAM lParam)
+{
+    int controlId = LOWORD(wParam);
+    int notificationCode = HIWORD(wParam);
+    
+    switch (controlId) {
+        case ID_CHECK_DRAW_NOTES:
+            m_drawMIDINotes = (SendMessage(m_checkDrawMIDINotes, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            InvalidateRect(m_hwnd, NULL, TRUE);
+            break;
+            
+        case ID_CHECK_DRAW_TEXT:
+            m_drawMIDIText = (SendMessage(m_checkDrawMIDIText, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            InvalidateRect(m_hwnd, NULL, TRUE);
+            break;
+            
+        case ID_CHECK_DRAW_VELOCITY:
+            m_drawVelocity = (SendMessage(m_checkDrawVelocity, BM_GETCHECK, 0, 0) == BST_CHECKED);
+            InvalidateRect(m_hwnd, NULL, TRUE);
+            break;
+            
+        case ID_COMBO_QUANTIZATION:
+            if (notificationCode == CBN_SELCHANGE) {
+                int sel = SendMessage(m_comboQuantization, CB_GETCURSEL, 0, 0);
+                if (sel >= 0 && sel < PRE::eQuantisationValueTotal) {
+                    m_quantization = PRE::quantisedDivisionValues[sel];
+                }
+            }
+            break;
+    }
 }
